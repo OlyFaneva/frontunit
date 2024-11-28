@@ -17,27 +17,32 @@ pipeline {
                 }
             }
         }
-
         stage('Install Dependencies and Test') {
             steps {
                 script {
-                    echo "Installing dependencies and running tests"
+                    echo "Current working directory in Jenkins: ${pwd()}"
+                    echo 'Listing files in the current directory in Jenkins:'
+                    sh "ls -l ${pwd()}"
+
+                    echo 'Running docker container to copy package.json and run tests'
                     sh '''
-                        echo "Current working directory in Jenkins: $(pwd)"
-                        echo "Listing files in the current directory:"
-                        ls -l $(pwd)
+                        docker run --rm -v ${pwd()}:/app -w /app node:18-alpine sh -c "
+                            echo 'Listing files in /app within the container:';
+                            ls -l /app;
 
-                        docker run --rm -v $(pwd):/app -w /app node:18-alpine sh -c "
-                            echo 'Listing files in the /app directory in the container:'
-                            ls -l /app
+                            # Copier package.json dans le conteneur
+                            cp /app/package.json /tmp/package.json;
 
-                            if [ ! -f /app/package.json ]; then
-                                echo 'Error: package.json not found in /app';
+                            # Vérifier que le fichier a bien été copié
+                            ls -l /tmp;
+
+                            if [ ! -f /tmp/package.json ]; then
+                                echo 'Error: package.json not found in /tmp';
                                 exit 1;
                             fi;
 
-                            npm install &&
-                            npm run test
+                            # Installation des dépendances et tests
+                            npm install && npm run test
                         "
                     '''
                 }
@@ -58,7 +63,7 @@ pipeline {
         stage('Push to Docker Hub') {
             steps {
                 script {
-                    echo "Pushing Docker image to Docker Hub"
+                    echo 'Pushing Docker image to Docker Hub'
                     withDockerRegistry([credentialsId: 'docker', url: 'https://index.docker.io/v1/']) {
                         sh '''
                             docker push ${DOCKER_IMAGE}:${DOCKER_TAG}
@@ -71,7 +76,7 @@ pipeline {
         stage('Deploy to VPS') {
             steps {
                 script {
-                    echo "Deploying to VPS"
+                    echo 'Deploying to VPS'
                     sh '''
                         sshpass -p "${SSH_CREDENTIALS_PSW}" ssh -o StrictHostKeyChecking=no ${SSH_CREDENTIALS_USR}@89.116.111.200 << EOF
                             docker pull ${DOCKER_IMAGE}:${DOCKER_TAG}
