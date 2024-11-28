@@ -1,18 +1,19 @@
 pipeline {
     agent any
-    
+
+    environment {
+        DOCKER_IMAGE = 'olyfaneva/mon-pic'
+        DOCKER_TAG = 'latest'
+        REPO_URL = 'https://github.com/OlyFaneva/frontunit.git'
+        SSH_CREDENTIALS = credentials('vps')
+    }
+
     stages {
-        stage('Declarative: Checkout SCM') {
-            steps {
-                checkout scm
-            }
-        }
-        
         stage('Clone Repository') {
             steps {
                 script {
-                    echo "Cloning repository from https://github.com/OlyFaneva/frontunit.git"
-                    git url: 'https://github.com/OlyFaneva/frontunit.git', branch: 'main'
+                    echo "Cloning repository: ${REPO_URL}"
+                    git url: "${REPO_URL}", branch: 'main'
                 }
             }
         }
@@ -22,12 +23,15 @@ pipeline {
                 script {
                     echo "Installing dependencies and running tests"
                     sh '''
-                        echo "Listing files in workspace:"
+                        # Déboguer le répertoire de travail avant d'exécuter le conteneur
+                        echo "Current working directory:"
+                        pwd
+                        echo "Listing files in the current directory:"
                         ls -l
 
-                        echo "Running Docker command to install dependencies and test"
-                        docker run --rm -v $WORKSPACE:/app -w /app node:18-alpine sh -c "
-                            echo 'Listing files inside the container:'
+                        # Lancer le conteneur Docker et vérifier le contenu du répertoire monté
+                        docker run --rm -v $(pwd):/app -w /app node:18-alpine sh -c "
+                            echo 'Listing files inside Docker container:'
                             ls -l /app
                             echo 'Checking for package.json in /app...'
                             if [ ! -f /app/package.json ]; then
@@ -45,9 +49,9 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    echo "Building Docker image"
+                    echo "Building Docker image: ${DOCKER_IMAGE}:${DOCKER_TAG}"
                     sh '''
-                        docker build -t my-docker-image .
+                        docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} .
                     '''
                 }
             }
@@ -57,10 +61,11 @@ pipeline {
             steps {
                 script {
                     echo "Pushing Docker image to Docker Hub"
-                    sh '''
-                        docker tag my-docker-image myusername/my-docker-image:latest
-                        docker push myusername/my-docker-image:latest
-                    '''
+                    withDockerRegistry([credentialsId: 'docker', url: 'https://index.docker.io/v1/']) {
+                        sh '''
+                            docker push ${DOCKER_IMAGE}:${DOCKER_TAG}
+                        '''
+                    }
                 }
             }
         }
@@ -68,24 +73,17 @@ pipeline {
         stage('Deploy to VPS') {
             steps {
                 script {
-                    echo "Deploying Docker container to VPS"
+                    echo "Deploying to VPS"
                     sh '''
-                        ssh user@your-vps 'docker pull myusername/my-docker-image:latest && docker run -d myusername/my-docker-image'
+                        sshpass -p "${SSH_CREDENTIALS_PSW}" ssh -o StrictHostKeyChecking=no ${SSH_CREDENTIALS_USR}@89.116.111.200 << EOF
+                            docker pull ${DOCKER_IMAGE}:${DOCKER_TAG}
+                            docker stop my-app || true
+                            docker rm my-app || true
+                            docker run -d --name my-app -p 80:3000 ${DOCKER_IMAGE}:${DOCKER_TAG}
+                        EOF
                     '''
                 }
             }
-        }
-    }
-    
-    post {
-        always {
-            echo "Pipeline finished."
-        }
-        success {
-            echo "Pipeline succeeded."
-        }
-        failure {
-            echo "Pipeline failed. Please check the logs."
         }
     }
 }
