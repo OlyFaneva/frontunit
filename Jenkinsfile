@@ -23,7 +23,7 @@ pipeline {
                 script {
                     echo "Listing files in the workspace"
                     // Utilisation de guillemets pour éviter les problèmes avec les espaces
-                    sh 'ls -l "/var/jenkins_home/workspace/Pipeline pour React"'
+                    sh 'ls -l "/var/jenkins_home/workspace/frontunit"'
                 }
             }
         }
