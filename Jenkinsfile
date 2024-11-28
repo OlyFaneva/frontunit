@@ -3,7 +3,6 @@ pipeline {
 
     environment {
         DOCKER_IMAGE = 'node:18'
-        PROJECT_NAME = 'frontunit' // Changez le nom si nécessaire
     }
 
     stages {
