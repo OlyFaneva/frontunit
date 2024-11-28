@@ -9,21 +9,36 @@ pipeline {
     stages {
         stage('Clone Repository') {
             steps {
-                git branch: 'main',
-                    url: 'https://github.com/OlyFaneva/frontunit.git',
-                    credentialsId: 'github'
+                script {
+                    // Afficher les informations Git pour le débogage
+                    echo "Cloning repository..."
+                    git branch: 'main',
+                        url: 'https://github.com/OlyFaneva/frontunit.git',
+                        credentialsId: 'github'
+                }
+            }
+        }
+
+        stage('Verify Repository Structure') {
+            steps {
+                script {
+                    // Vérifiez la structure des fichiers dans le workspace pour déboguer
+                    echo "Listing files in the workspace"
+                    sh 'ls -l /var/jenkins_home/workspace/Pipeline pour React'
+                }
             }
         }
 
         stage('Run Tests in Docker') {
             steps {
                 script {
+                    // Vérification de la structure du répertoire dans le conteneur Docker
+                    echo "Running tests in a Docker container"
                     sh '''
-                        echo "Running tests in a Docker container"
                         docker run --rm \
                             -v "$PWD:/frontunit" \
                             -w /frontunit \
-                            node:18 bash -c "npm install && npm test"
+                            node:18 bash -c "echo Listing files in /frontunit && ls -l /frontunit && npm install && npm test"
                     '''
                 }
             }
@@ -32,8 +47,9 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
+                    echo "Building Docker Image"
+                    // Construction de l'image Docker
                     sh '''
-                        echo "Building Docker Image"
                         docker build -t olyfaneva/front-app .
                     '''
                 }
