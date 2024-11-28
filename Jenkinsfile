@@ -9,9 +9,12 @@ pipeline {
     stages {
         stage('Clone Repository') {
             steps {
-                checkout scm
+                git branch: 'main',
+                url: 'https://github.com/OlyFaneva/frontunit.git',
+                credentialsId: 'github'
             }
         }
+
 
         stage('Run Tests in Docker') {
             steps {
