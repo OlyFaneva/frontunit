@@ -3,18 +3,17 @@ pipeline {
 
     environment {
         DOCKER_IMAGE = 'node:18'
-        PROJECT_NAME = 'Pipeline_for_React' // Nom sans espaces pour éviter les conflits
+        PROJECT_NAME = 'Pipeline_pour_React' // Changez le nom si nécessaire
     }
 
     stages {
         stage('Clone Repository') {
             steps {
                 script {
-                    // Afficher les informations Git pour le débogage
                     echo "Cloning repository..."
                     git branch: 'main',
                         url: 'https://github.com/OlyFaneva/frontunit.git',
-                        credentialsId: 'github'
+                        credentialsId: 'git'
                 }
             }
         }
@@ -22,9 +21,9 @@ pipeline {
         stage('Verify Repository Structure') {
             steps {
                 script {
-                    // Vérifiez la structure des fichiers dans le workspace pour déboguer
                     echo "Listing files in the workspace"
-                    sh 'ls -l /var/jenkins_home/workspace/Pipeline pour React'
+                    // Utilisation de guillemets pour éviter les problèmes avec les espaces
+                    sh 'ls -l "/var/jenkins_home/workspace/Pipeline pour React"'
                 }
             }
         }
@@ -32,7 +31,6 @@ pipeline {
         stage('Run Tests in Docker') {
             steps {
                 script {
-                    // Vérification de la structure du répertoire dans le conteneur Docker
                     echo "Running tests in a Docker container"
                     sh '''
                         docker run --rm \
@@ -48,7 +46,6 @@ pipeline {
             steps {
                 script {
                     echo "Building Docker Image"
-                    // Construction de l'image Docker
                     sh '''
                         docker build -t olyfaneva/front-app .
                     '''
