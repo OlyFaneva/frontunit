@@ -27,6 +27,7 @@ pipeline {
                     echo 'Running docker container to copy package.json and run tests'
                     sh '''
                         docker run --rm -v ${pwd()}:/app -w /app node:18-alpine sh -c "
+                            # Utilisation de bash au lieu de sh
                             echo 'Listing files in /app within the container:';
                             ls -l /app;
 
@@ -41,7 +42,7 @@ pipeline {
                                 exit 1;
                             fi;
 
-                            # Installation des dépendances et tests
+                            # Installer les dépendances et exécuter les tests
                             npm install && npm run test
                         "
                     '''
