@@ -23,21 +23,19 @@ pipeline {
                 script {
                     echo "Installing dependencies and running tests"
                     sh '''
-                        # Déboguer le répertoire de travail avant d'exécuter le conteneur
-                        echo "Current working directory:"
-                        pwd
+                        echo "Current working directory in Jenkins: $(pwd)"
                         echo "Listing files in the current directory:"
-                        ls -l
+                        ls -l $(pwd)
 
-                        # Lancer le conteneur Docker et vérifier le contenu du répertoire monté
                         docker run --rm -v $(pwd):/app -w /app node:18-alpine sh -c "
-                            echo 'Listing files inside Docker container:'
+                            echo 'Listing files in the /app directory in the container:'
                             ls -l /app
-                            echo 'Checking for package.json in /app...'
+
                             if [ ! -f /app/package.json ]; then
                                 echo 'Error: package.json not found in /app';
                                 exit 1;
                             fi;
+
                             npm install &&
                             npm run test
                         "
