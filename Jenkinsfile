@@ -1,14 +1,10 @@
 pipeline {
     agent any
-    triggers {
-        // Ce trigger lance le pipeline à chaque push sur GitHub
-        githubPush()
-    }
     environment {
         GITHUB_REPO = 'https://github.com/OlyFaneva/frontunit.git'
         DOCKER_HUB_REPO = 'olyfaneva/repository'
         VPS_IP = '89.116.111.200'
-        SSH_CREDENTIALS = credentials('vps') // Assurez-vous que 'vps' est bien configuré dans Jenkins
+        SSH_CREDENTIALS = credentials('vps')
     }
     stages {
         stage('Clone Repository') {
@@ -16,15 +12,15 @@ pipeline {
                 git url: GITHUB_REPO, branch: 'main'
             }
         }
-        stage('Run Tests') {
+        stage('Run Tests in Docker') {
             steps {
                 script {
-                    // Vérifiez que Node.js est bien installé sur l'agent Jenkins
                     sh '''
-                        echo "Installing dependencies"
-                        npm install
-                        echo "Running tests"
-                        npm run test
+                        echo "Running tests in a Docker container"
+                        docker run --rm -v $(pwd):/app -w /app node:18 bash -c "
+                            npm install &&
+                            npm run test
+                        "
                     '''
                 }
             }
@@ -32,7 +28,6 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    // Construit l'image Docker
                     sh 'docker build -t ${DOCKER_HUB_REPO}:latest .'
                 }
             }
@@ -42,7 +37,7 @@ pipeline {
                 withCredentials([usernamePassword(credentialsId: 'docker', passwordVariable: 'DOCKER_PASSWORD', usernameVariable: 'DOCKER_USERNAME')]) {
                     sh '''
                         echo "Logging into Docker Hub"
-                        docker login -u ${DOCKER_USERNAME} -p ${DOCKER_PASSWORD}
+                        echo ${DOCKER_PASSWORD} | docker login -u ${DOCKER_USERNAME} --password-stdin
                         echo "Pushing Docker image to Docker Hub"
                         docker push ${DOCKER_HUB_REPO}:latest
                     '''
@@ -53,10 +48,12 @@ pipeline {
             steps {
                 script {
                     sh '''
-                        echo "Deploying to VPS"
-                        sshpass -p "${SSH_CREDENTIALS_PSW}" ssh -o StrictHostKeyChecking=no ${SSH_CREDENTIALS_USR}@${VPS_IP} "
-                            docker pull ${DOCKER_HUB_REPO}:latest && 
-                            docker run -d --restart always -p 80:80 ${DOCKER_HUB_REPO}:latest"
+                        ssh -o StrictHostKeyChecking=no root@${VPS_IP} <<EOF
+                        docker pull ${DOCKER_HUB_REPO}:latest
+                        docker stop react-app || true
+                        docker rm react-app || true
+                        docker run -d --restart always -p 80:80 --name react-app ${DOCKER_HUB_REPO}:latest
+                        EOF
                     '''
                 }
             }
