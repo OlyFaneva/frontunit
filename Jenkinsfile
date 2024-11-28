@@ -21,8 +21,8 @@ pipeline {
                     sh '''
                         echo "Running tests in a Docker container"
                         docker run --rm \
-                            -v "$PWD:/app" \
-                            -w /app \
+                            -v "$PWD:/frontunit" \
+                            -w /frontunit \
                             node:18 bash -c "npm install && npm test"
                     '''
                 }
@@ -34,7 +34,7 @@ pipeline {
                 script {
                     sh '''
                         echo "Building Docker Image"
-                        docker build -t olyfaneva/react-app .
+                        docker build -t olyfaneva/front-app .
                     '''
                 }
             }
@@ -43,7 +43,7 @@ pipeline {
         stage('Push Docker Image to Docker Hub') {
             steps {
                 withDockerRegistry(credentialsId: 'docker', url: 'https://index.docker.io/v1/') {
-                    sh 'docker push olyfaneva/react-app'
+                    sh 'docker push olyfaneva/front-app'
                 }
             }
         }
