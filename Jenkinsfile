@@ -1,15 +1,14 @@
 pipeline {
     agent any
-    
+
     environment {
         // Configuration de l'environnement Docker
         DOCKER_IMAGE = 'olyfaneva/nextproject'
         DOCKER_TAG = 'latest'
         REPO_URL = 'https://github.com/OlyFaneva/frontunit.git'
     }
-    
+
     stages {
-        
         // Étape 1: Cloner le dépôt Git
         stage('Clone Repository') {
             steps {
@@ -20,13 +19,21 @@ pipeline {
                 }
             }
         }
+        stage('Check Node.js and npm') {
+            steps {
+                script {
+                    sh 'node -v'
+                    sh 'npm -v'
+                }
+            }
+        }
 
         // Étape 2: Installer les dépendances
         stage('Install Dependencies') {
             steps {
                 script {
                     // Installer les dépendances Next.js avec npm
-                    echo "Installing dependencies..."
+                    echo 'Installing dependencies...'
                     sh 'npm install'
                 }
             }
@@ -37,7 +44,7 @@ pipeline {
             steps {
                 script {
                     // Exécuter les tests Next.js
-                    echo "Running Next.js tests..."
+                    echo 'Running Next.js tests...'
                     sh 'npm test -- --watchAll=false'
                 }
             }
@@ -59,13 +66,12 @@ pipeline {
             steps {
                 script {
                     // Pousser l'image Docker vers Docker Hub
-                    echo "Pushing Docker image to Docker Hub"
+                    echo 'Pushing Docker image to Docker Hub'
                     withDockerRegistry([credentialsId: 'docker', url: 'https://index.docker.io/v1/']) {
                         sh 'docker push ${DOCKER_IMAGE}:${DOCKER_TAG}'
                     }
                 }
             }
         }
-
     }
 }
