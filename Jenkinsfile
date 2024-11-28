@@ -10,11 +10,10 @@ pipeline {
         stage('Clone Repository') {
             steps {
                 git branch: 'main',
-                url: 'https://github.com/OlyFaneva/frontunit.git',
-                credentialsId: 'github'
+                    url: 'https://github.com/OlyFaneva/frontunit.git',
+                    credentialsId: 'github'
             }
         }
-
 
         stage('Run Tests in Docker') {
             steps {
@@ -43,7 +42,7 @@ pipeline {
 
         stage('Push Docker Image to Docker Hub') {
             steps {
-                withDockerRegistry(credentialsId: 'docker') {
+                withDockerRegistry(credentialsId: 'docker', url: 'https://index.docker.io/v1/') {
                     sh 'docker push olyfaneva/react-app'
                 }
             }
@@ -54,7 +53,7 @@ pipeline {
                 sshagent(credentials: ['vps']) {
                     sh '''
                         echo "Connecting to VPS and deploying..."
-                        ssh root@<VPS_IP> "docker pull my-dockerhub-username/react-app && docker run -d -p 80:3000 my-dockerhub-username/react-app"
+                        ssh root@<VPS_IP> "docker pull olyfaneva/react-app && docker run -d -p 80:3000 olyfaneva/react-app"
                     '''
                 }
             }
